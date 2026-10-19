@@ -72,28 +72,28 @@ std::string Renderer::Render(const Buffer& buffer, const Window& window, const R
     //这里是提示3中的部分
     //我们只会在CommandMode的时候检查一下底部的命令内容,在NormalMode不会看底部,所以message你可以随意写
 
-    // 获取当前光标在 Buffer 里的真实坐标
-    auto cursor = window.GetCursor();
-    
-    // 1. 计算屏幕上的物理行：真实行 - 视口顶部行 + 1 (终端的坐标是从 1 开始的，所以要 +1)
-    std::size_t cursor_row = cursor.row_ - viewport.top_ + 1;
-    
-    // 2. 计算屏幕上的物理列：
-    // 先取出光标所在的那一行文本
-    std::string_view cursor_line = buffer.GetLineAt(cursor.row_);
-    // 用 TextLayout.hpp 里的工具，把字符下标换算成展开 Tab 后的绝对显示列
-    std::size_t absolute_display_col = BufferColumnToRenderColumn(cursor_line, cursor.column_);
-    
-    // 屏幕列 = 绝对显示列 - 视口左侧偏移量 + 1
-    std::size_t cursor_column = absolute_display_col - viewport.left_ + 1;
+    std::size_t cursor_row;
+    std::size_t cursor_column;
 
-    //计算cursor_row和cursor_column即可    
+    if (state.mode_ == Mode::CommandLine) {
+    // 如果是命令行模式，光标必须在屏幕底部最后一行 (viewport.rows_ + 1)
+    cursor_row = viewport.rows_ + 1;
+    // 列位置：1个冒号 + 已输入命令的长度 + 1（光标本身的偏移）
+    cursor_column = 1 + state.command_.size() + 1;
+    } else {
+    // Normal 或 Insert 模式下，光标在 Buffer 文本中
+    auto cursor = window.GetCursor();
+    cursor_row = cursor.row_ - viewport.top_ + 1;
+    
+    std::string_view cursor_line = buffer.GetLineAt(cursor.row_);
+    std::size_t absolute_display_col = BufferColumnToRenderColumn(cursor_line, cursor.column_);
+    cursor_column = absolute_display_col - viewport.left_ + 1;
+}
 
     frame += CursorSequence(cursor_row, cursor_column);
     frame += "\x1b[?25h";
     return frame;
 }
-
 std::string Renderer::ExpandForDisplay(std::string_view line) {
     //从左到右扫描buffer中一整行的实际内容,并扩展到render应该输出的视图
     //你应该在Render中调用这个函数,并把函数返回的结果按照视口剪切用于Render的某些行

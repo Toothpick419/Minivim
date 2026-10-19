@@ -107,8 +107,12 @@ void Buffer::JoinLine(std::size_t row) {
 }
 
 void Buffer::Save() {
-   //把文件内容保存, 直接调用WriteTo方法
-   WriteTo(path_);
+    // 特判：如果没有修改过，直接跳过保存，完美保留原文件的内容与 EOF 状态！
+    if (!is_modified_) {
+        return; 
+    }
+    // 把文件内容保存, 直接调用WriteTo方法
+    WriteTo(path_);
 }
 
 void Buffer::SaveAs(const std::filesystem::path& path) {
