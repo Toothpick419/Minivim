@@ -152,16 +152,7 @@ void Editor::HandleInsert(KeyEvent key) {
 
     // 1. 若是 Escape 退出插入模式 (ASCII 27)
     if (key.code_ == KeyCode::Escape){
-        mode_ = Mode::Normal; // 切换回 Normal 模式
-        
-        // Vim 规范：退出插入模式时，如果光标位于行尾（也就是原先允许的 line.size() 处），需要向左退一格
-        const auto& line = buffer_.GetLineAt(pos.row_);
-        if (pos.column_ > 0 && pos.column_ == line.size()) {
-            pos.column_ -= 1;
-        }
-        
-        // 回到 Normal 模式，不再允许光标越界，传入 false
-        window_.SetCursor(buffer_, pos, false); //
+        LeaveInsert();
         return;
     }
 
@@ -246,6 +237,9 @@ void Editor::HandleCommandLine(KeyEvent key) {
     if (key.code_ == KeyCode::Backspace){
         if (!command_.empty()) {
             command_.pop_back(); 
+        } else {
+            // 如果命令已经被删光了，再次按退格会退出命令行模式
+            LeaveCommandLine();
         }
         return;
     }
