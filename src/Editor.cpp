@@ -258,23 +258,19 @@ void Editor::ExecuteCommandLine() {
     std::string cmd = command_;
     auto start = cmd.find_first_not_of(" \t");
     if (start == std::string::npos) {
-        // 如果全是空白字符，也就是空命令，直接退出并返回
         LeaveCommandLine();
         return;
     }
     auto end = cmd.find_last_not_of(" \t");
     cmd = cmd.substr(start, end - start + 1);
 
-    // 退出命令行模式（此时会清空原有的 command_）
     LeaveCommandLine();
 
-    // 2. 按第一个空格或 Tab 拆成命令名和参数
+    // 2. 拆分命令名和参数
     auto space_pos = cmd.find_first_of(" \t");
     std::string cmd_name = cmd.substr(0, space_pos);
-    // string::substr 如果起始位置超过长度会抛出异常，所以要判断是否找到了空格
     std::string cmd_args = (space_pos != std::string::npos) ? cmd.substr(space_pos + 1) : "";
 
-    // 去掉参数前导的可能多余的空格（可选，但推荐）
     if (!cmd_args.empty()) {
         auto arg_start = cmd_args.find_first_not_of(" \t");
         if (arg_start != std::string::npos) {
@@ -283,24 +279,16 @@ void Editor::ExecuteCommandLine() {
             cmd_args.clear();
         }
     }
-    // 3. 根据命令名执行对应的动作 (Basic 部分只看命令名)
-    if (cmd_name == "q") {
-        // 正常退出（如果是完整 Vim 还需检查是否保存，基础版直接退出即可）
+
+    // 3. 严格匹配 Basic 要求命令
+    if (cmd_name == "q" || cmd_name == "q!" || cmd_name == "quit!") {
         running_ = false;
-    } else if (cmd_name == "q!") {
-        // 强制退出
+    } else if (cmd_name == "wq") {
+        // 保存并退出
+        SaveBuffer(cmd_args);
         running_ = false;
     } else if (cmd_name == "w") {
-        // 如果带了参数，也就是 cmd_args 不为空，就当作 path 传进去
         SaveBuffer(cmd_args);
-    } else if (cmd_name == "wq") {
-        // 如果保存成功，才退出程序
-        if (SaveBuffer(cmd_args)) {
-            running_ = false;
-        }
-    } else {
-        // 4. 无法识别的命令写入 message_，供下一次刷新显示
-        message_ = "Not an editor command: " + cmd_name;
     }
 }
 void Editor::LeaveCommandLine() {
