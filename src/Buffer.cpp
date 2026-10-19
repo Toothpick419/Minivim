@@ -118,16 +118,19 @@ void Buffer::SaveAs(const std::filesystem::path& path) {
 
 
 void Buffer::WriteTo(const std::filesystem::path& path) const {
-   //实际将缓冲区中的内容写入path指向的文件中
-   std::ofstream file(path); // 使用 ofstream 打开文件准备写入。如果文件已存在，默认会清空原内容重新写
-   if (file.is_open()) {
-    // 遍lines_ 数组里的每一行
-     for(const std::string &line : lines_){
-        // 把这一行的文字写进去，并且手动补上一个换行符 '\n'
-        file << line << '\n';
-     }
-     is_modified_ = false;
-   }
-}
+    std::ofstream file(path); 
+    if (file.is_open()) {
+        // 特判：如果文件没有任何修改，且是一个空文件（只有一行空字符串）
+        // 那么不应该往里面写入任何内容（保持 0 字节），以防多出无意义的换行符
+        bool is_empty_unmodified = (!is_modified_ && lines_.size() == 1 && lines_[0].empty());
 
+        if (!is_empty_unmodified) {
+            for (const std::string &line : lines_) {
+                file << line << '\n';
+            }
+        }
+        
+        is_modified_ = false; 
+    }
+}
 } // namespace sjtu
